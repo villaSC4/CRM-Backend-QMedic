@@ -4,6 +4,27 @@ import { AppointmentRepository } from '../repositories/appointment.repository';
 import { CalendarService } from '../services/calendar.service';
 import { pool } from '../config/database';
 
+function parsePeruDateTime(input: string | Date): Date {
+  if (input instanceof Date) return input;
+  const str = input.trim();
+  if (!str.includes('Z') && !str.includes('+') && !str.match(/[0-9]{2}:[0-9]{2}:[0-9]{2}-[0-9]{2}/)) {
+    return new Date(`${str}-05:00`);
+  }
+  return new Date(str);
+}
+
+function toLocalSqlDatetime(d: Date): string {
+  const limaDate = new Date(d.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const year = limaDate.getFullYear();
+  const month = pad(limaDate.getMonth() + 1);
+  const day = pad(limaDate.getDate());
+  const hours = pad(limaDate.getHours());
+  const minutes = pad(limaDate.getMinutes());
+  const seconds = pad(limaDate.getSeconds());
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export class CRMAppointmentController {
   static async getAllAppointments(req: Request, res: Response) {
     try {
@@ -19,7 +40,7 @@ export class CRMAppointmentController {
     try {
       const { fullName, phone, email, startTime, isFirstSession, notes } = req.body;
 
-      const start = new Date(startTime);
+      const start = parsePeruDateTime(startTime);
       const end = new Date(start.getTime() + 60 * 60 * 1000);
 
       if (!CalendarService.isWithinWorkingHours(start)) {
@@ -55,8 +76,8 @@ export class CRMAppointmentController {
       const appointmentId = await AppointmentRepository.create({
         patient_id: patientId,
         service_id: 2,
-        start_time: start,
-        end_time: end,
+        start_time: toLocalSqlDatetime(start),
+        end_time: toLocalSqlDatetime(end),
         status: 'CONFIRMED',
         is_first_session: Boolean(isFirstSession),
         price_paid: pricePaid,

@@ -40,8 +40,8 @@ export class AppointmentRepository {
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT 
         a.id, 
-        a.start_time, 
-        a.end_time, 
+        DATE_FORMAT(a.start_time, '%Y-%m-%d %H:%i:%s') AS start_time, 
+        DATE_FORMAT(a.end_time, '%Y-%m-%d %H:%i:%s') AS end_time, 
         a.status, 
         a.price_paid, 
         a.is_first_session,
