@@ -1,15 +1,25 @@
 import { google } from 'googleapis';
 import path from 'path';
+import fs from 'fs';
 
-const KEYFILEPATH = path.join(__dirname, '../../google-credentials.json');
+const KEYFILEPATH = path.join(process.cwd(), 'google-credentials.json');
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
-const auth = new google.auth.GoogleAuth({
-  keyFile: KEYFILEPATH,
-  scopes: SCOPES,
-});
+let calendar: any = null;
+try {
+  if (fs.existsSync(KEYFILEPATH)) {
+    const auth = new google.auth.GoogleAuth({
+      keyFile: KEYFILEPATH,
+      scopes: SCOPES,
+    });
+    calendar = google.calendar({ version: 'v3', auth });
+  } else {
+    console.warn('⚠️ google-credentials.json no encontrado en', KEYFILEPATH);
+  }
+} catch (e) {
+  console.error('⚠️ Error al inicializar Google Calendar Auth:', e);
+}
 
-const calendar = google.calendar({ version: 'v3', auth });
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'aaronpalominod34@gmail.com';
 
 export class CalendarService {
@@ -33,6 +43,7 @@ export class CalendarService {
     endTime: Date;
     isFirstSession: boolean;
   }): Promise<string | undefined> {
+    if (!calendar) return undefined;
     try {
       const summary = `QMEDIC Cita: ${data.patientName}`;
       const description = `
@@ -68,18 +79,26 @@ export class CalendarService {
     const startHour = 9;
     const endHour = dayOfWeek === 4 ? 14 : 18;
 
-    const timeMin = new Date(`${dateStr}T00:00:00-05:00`).toISOString();
-    const timeMax = new Date(`${dateStr}T23:59:59-05:00`).toISOString();
+    let busyEvents: any[] = [];
 
-    const response = await calendar.events.list({
-      calendarId: CALENDAR_ID,
-      timeMin,
-      timeMax,
-      singleEvents: true,
-      orderBy: 'startTime',
-    });
+    if (calendar) {
+      try {
+        const timeMin = new Date(`${dateStr}T00:00:00-05:00`).toISOString();
+        const timeMax = new Date(`${dateStr}T23:59:59-05:00`).toISOString();
 
-    const busyEvents = response.data.items || [];
+        const response = await calendar.events.list({
+          calendarId: CALENDAR_ID,
+          timeMin,
+          timeMax,
+          singleEvents: true,
+          orderBy: 'startTime',
+        });
+
+        busyEvents = response.data.items || [];
+      } catch (err) {
+        console.warn('⚠️ Google Calendar no disponible o desincronizado, usando horarios por defecto:', (err as any)?.message);
+      }
+    }
 
     const availableSlots: string[] = [];
 
