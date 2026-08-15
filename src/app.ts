@@ -23,15 +23,20 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 
-app.get('/api/v1/crm/patients', CRMPatientController.getAllPatients);
-app.put('/api/v1/crm/patients/:id/notes', CRMPatientController.updateNotes);
-app.get('/api/v1/crm/chats', CRMChatController.getConversations);
-app.get('/api/v1/crm/chats/:conversationId/messages', CRMChatController.getMessages);
-app.post('/api/v1/crm/chats/send', CRMChatController.sendMessage);
-app.get('/api/v1/crm/appointments', CRMAppointmentController.getAllAppointments);
-app.get('/api/v1/crm/appointments/slots', CRMAppointmentController.getSlots);
-app.post('/api/v1/crm/appointments', CRMAppointmentController.createAppointment);
-app.patch('/api/v1/crm/appointments/:id/status', CRMAppointmentController.updateStatus);
+// Rutas de Pacientes
+app.get(['/api/v1/crm/patients', '/patients'], CRMPatientController.getAllPatients);
+app.put(['/api/v1/crm/patients/:id/notes', '/patients/:id/notes'], CRMPatientController.updateNotes);
+
+// Rutas de Chats WhatsApp
+app.get(['/api/v1/crm/chats', '/chats'], CRMChatController.getConversations);
+app.get(['/api/v1/crm/chats/:conversationId/messages', '/chats/:conversationId/messages'], CRMChatController.getMessages);
+app.post(['/api/v1/crm/chats/send', '/chats/send'], CRMChatController.sendMessage);
+
+// Rutas de Citas y Google Calendar
+app.get(['/api/v1/crm/appointments', '/appointments'], CRMAppointmentController.getAllAppointments);
+app.get(['/api/v1/crm/appointments/slots', '/appointments/slots'], CRMAppointmentController.getSlots);
+app.post(['/api/v1/crm/appointments', '/appointments'], CRMAppointmentController.createAppointment);
+app.patch(['/api/v1/crm/appointments/:id/status', '/appointments/:id/status'], CRMAppointmentController.updateStatus);
 
 const PORT = process.env.PORT || 3000;
 
