@@ -1,10 +1,14 @@
 import { Client, LocalAuth } from 'whatsapp-web.js';
-import qrcode from 'qrcode-terminal';
+import qrcodeTerminal from 'qrcode-terminal';
+import QRCode from 'qrcode';
 import { PatientRepository } from '../repositories/patient.repository';
 import { ChatRepository } from '../repositories/chat.repository';
 
 export class WhatsAppService {
   private static client: Client;
+  private static currentQr: string | null = null;
+  private static qrDataUrl: string | null = null;
+  private static isConnected: boolean = false;
 
   static async init() {
     this.client = new Client({
@@ -36,25 +40,44 @@ export class WhatsAppService {
       console.log(`⏳ Cargando WhatsApp Web: ${percent}% - ${message}`);
     });
 
-    this.client.on('qr', (qr) => {
+    this.client.on('qr', async (qr) => {
       console.log('\n📲 ESCANEA ESTE CÓDIGO QR CON WHATSAPP (Número de pruebas):');
-      qrcode.generate(qr, { small: true });
+      qrcodeTerminal.generate(qr, { small: true });
+      this.currentQr = qr;
+      this.isConnected = false;
+      try {
+        this.qrDataUrl = await QRCode.toDataURL(qr, { margin: 2, scale: 8 });
+      } catch (err) {
+        console.error('Error al generar QR DataURL:', err);
+      }
     });
 
     this.client.on('authenticated', () => {
       console.log('🔑 WhatsApp autenticado correctamente.');
+      this.isConnected = true;
+      this.currentQr = null;
+      this.qrDataUrl = null;
     });
 
     this.client.on('ready', () => {
       console.log('✅ WhatsApp conectado y listo para recibir y enviar mensajes.');
+      this.isConnected = true;
+      this.currentQr = null;
+      this.qrDataUrl = null;
     });
 
     this.client.on('auth_failure', (msg) => {
       console.error('❌ Fallo de autenticación en WhatsApp:', msg);
+      this.isConnected = false;
+      this.currentQr = null;
+      this.qrDataUrl = null;
     });
 
     this.client.on('disconnected', (reason) => {
       console.log('⚠️ WhatsApp desconectado:', reason);
+      this.isConnected = false;
+      this.currentQr = null;
+      this.qrDataUrl = null;
     });
 
     this.client.on('message', async (msg) => {
@@ -126,5 +149,13 @@ export class WhatsAppService {
     } catch (err) {
       return await this.client.sendMessage(finalChatId, text);
     }
+  }
+
+  static getStatus() {
+    return {
+      isConnected: this.isConnected,
+      qrImage: this.qrDataUrl,
+      rawQr: this.currentQr,
+    };
   }
 }

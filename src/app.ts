@@ -38,6 +38,12 @@ app.get(['/api/v1/crm/appointments/slots', '/appointments/slots'], CRMAppointmen
 app.post(['/api/v1/crm/appointments', '/appointments'], CRMAppointmentController.createAppointment);
 app.patch(['/api/v1/crm/appointments/:id/status', '/appointments/:id/status'], CRMAppointmentController.updateStatus);
 
+// Estado de WhatsApp y Código QR para el Frontend
+app.get(['/api/v1/crm/whatsapp/status', '/whatsapp/status', '/api/whatsapp/status'], (_req, res) => {
+  const status = WhatsAppService.getStatus();
+  return res.json({ success: true, ...status });
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
