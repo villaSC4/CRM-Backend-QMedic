@@ -28,9 +28,17 @@ export class WhatsAppService {
       },
     });
 
+    this.client.on('loading_screen', (percent, message) => {
+      console.log(`⏳ Cargando WhatsApp Web: ${percent}% - ${message}`);
+    });
+
     this.client.on('qr', (qr) => {
       console.log('\n📲 ESCANEA ESTE CÓDIGO QR CON WHATSAPP (Número de pruebas):');
       qrcode.generate(qr, { small: true });
+    });
+
+    this.client.on('authenticated', () => {
+      console.log('🔑 WhatsApp autenticado correctamente.');
     });
 
     this.client.on('ready', () => {
@@ -39,6 +47,10 @@ export class WhatsAppService {
 
     this.client.on('auth_failure', (msg) => {
       console.error('❌ Fallo de autenticación en WhatsApp:', msg);
+    });
+
+    this.client.on('disconnected', (reason) => {
+      console.log('⚠️ WhatsApp desconectado:', reason);
     });
 
     this.client.on('message', async (msg) => {
@@ -79,7 +91,10 @@ export class WhatsAppService {
       }
     });
 
-    this.client.initialize();
+    console.log('🤖 Iniciando Chromium y conectando a WhatsApp Web...');
+    this.client.initialize().catch((err) => {
+      console.error('❌ Error crítico al inicializar WhatsApp Web:', err);
+    });
   }
 
   static async sendMessage(target: string, text: string) {
