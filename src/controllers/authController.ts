@@ -23,12 +23,19 @@ export const register = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response): Promise<any> => {
-    const { email, password } = req.body;
+    const rawEmail = req.body.email || req.body.username || req.body.user || req.body.correo;
+    const rawPassword = req.body.password || req.body.pass || req.body.contrasena || req.body.clave;
+
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+    const password = typeof rawPassword === 'string' ? rawPassword.trim() : '';
+
+    console.log(`🔐 Intento de login para email: "${email}"`);
 
     try {
-        const [users]: any = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        const [users]: any = await db.execute('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [email]);
         
-        if (users.length === 0) {
+        if (!users || users.length === 0) {
+            console.log(`❌ Usuario no encontrado en DB: "${email}"`);
             return res.status(401).json({ success: false, message: 'Correo o contraseña incorrectos' });
         }
 
@@ -36,6 +43,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         const validPassword = await bcrypt.compare(password, user.password);
         
         if (!validPassword) {
+            console.log(`❌ Contraseña incorrecta para: "${email}"`);
             return res.status(401).json({ success: false, message: 'Correo o contraseña incorrectos' });
         }
 
@@ -44,6 +52,8 @@ export const login = async (req: Request, res: Response): Promise<any> => {
             process.env.JWT_SECRET || 'TU_SECRETO_QMEDIC_2024',
             { expiresIn: '8h' }
         );
+
+        console.log(`✅ Login exitoso para: "${user.email}" (${user.name})`);
 
         res.json({
             success: true,
