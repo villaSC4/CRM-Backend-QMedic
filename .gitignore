@@ -1,3 +1,8 @@
+# Ignorar dependencias y builds
+node_modules
+dist
+.env
+
 # Ignorar credenciales y caché de WhatsApp Web.js
 /auth_info_wwebjs/
 /.wwebjs_cache/
