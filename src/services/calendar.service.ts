@@ -13,29 +13,19 @@ const calendar = google.calendar({ version: 'v3', auth });
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'aaronpalominod34@gmail.com';
 
 export class CalendarService {
-  /**
-   * Valida si el horario solicitado cumple los horarios de QMEDIC[cite: 1]
-   * Lun-Sáb: 9:00 AM - 6:00 PM (último turno 5:00 PM)[cite: 1]
-   * Jueves: 9:00 AM - 2:00 PM (último turno 1:00 PM)[cite: 1]
-   */
   static isWithinWorkingHours(dateInput: Date): boolean {
-    const dayOfWeek = dateInput.getDay(); // 0: Domingo, 1: Lunes, ..., 4: Jueves, 6: Sábado
+    const dayOfWeek = dateInput.getDay();
     const hour = dateInput.getHours();
 
-    if (dayOfWeek === 0) return false; // Domingo cerrado
+    if (dayOfWeek === 0) return false;
 
-    // Jueves: 9:00 AM a 2:00 PM (último turno 1:00 PM)[cite: 1]
     if (dayOfWeek === 4) {
       return hour >= 9 && hour < 14;
     }
 
-    // Lunes a Sábado regulares: 9:00 AM a 6:00 PM (último turno 5:00 PM)[cite: 1]
     return hour >= 9 && hour < 18;
   }
 
-  /**
-   * Inserta la cita como evento en Google Calendar
-   */
   static async createAppointmentEvent(data: {
     patientName: string;
     phone: string;
@@ -69,22 +59,15 @@ export class CalendarService {
     }
   }
 
-  /**
-   * Obtiene los bloques de horarios disponibles para una fecha específica
-   * Formato de fecha esperado: 'YYYY-MM-DD'
-   */
   static async getAvailableSlots(dateStr: string): Promise<string[]> {
     const targetDate = new Date(`${dateStr}T00:00:00`);
     const dayOfWeek = targetDate.getDay();
 
-    // Domingos no hay atención
     if (dayOfWeek === 0) return [];
 
-    // Definir hora de inicio y fin según el día
-    const startHour = 9; // 9:00 AM
-    const endHour = dayOfWeek === 4 ? 14 : 18; // Jueves hasta las 2:00 PM, demás días hasta las 6:00 PM
+    const startHour = 9;
+    const endHour = dayOfWeek === 4 ? 14 : 18;
 
-    // Consultar eventos existentes en Google Calendar para esa fecha
     const timeMin = new Date(`${dateStr}T00:00:00-05:00`).toISOString();
     const timeMax = new Date(`${dateStr}T23:59:59-05:00`).toISOString();
 
@@ -98,7 +81,6 @@ export class CalendarService {
 
     const busyEvents = response.data.items || [];
 
-    // Generar turnos de 1 hora y descartar los ocupados
     const availableSlots: string[] = [];
 
     for (let hour = startHour; hour < endHour; hour++) {
@@ -121,4 +103,3 @@ export class CalendarService {
     return availableSlots;
   }
 }
-

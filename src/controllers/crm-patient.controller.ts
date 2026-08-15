@@ -3,9 +3,6 @@ import { pool } from '../config/database';
 import { RowDataPacket } from 'mysql2';
 
 export class CRMPatientController {
-  /**
-   * Obtener todos los pacientes con conteo de citas
-   */
   static async getAllPatients(req: Request, res: Response) {
     try {
       const [patients] = await pool.query<RowDataPacket[]>(`
@@ -31,9 +28,6 @@ export class CRMPatientController {
     }
   }
 
-  /**
-   * Actualizar notas médicas de un paciente
-   */
   static async updateNotes(req: Request, res: Response) {
     try {
       const patientId = Number(req.params.id);

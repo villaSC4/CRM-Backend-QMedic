@@ -23,7 +23,7 @@
     "typescript": "^7.0.2"
   },
   "scripts": {
-    "dev": "tsx watch src/app.ts",
+    "dev": "tsx watch --ignore auth_info_wwebjs --ignore .wwebjs_cache src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js"
   }

@@ -15,9 +15,6 @@ export interface Appointment {
 }
 
 export class AppointmentRepository {
-  /**
-   * Registrar una nueva cita en MySQL
-   */
   static async create(appointment: Appointment): Promise<number> {
     const [result] = await pool.query<ResultSetHeader>(
       `INSERT INTO appointments 
@@ -39,9 +36,6 @@ export class AppointmentRepository {
     return result.insertId;
   }
 
-  /**
-   * Listar citas con los datos del paciente para el panel del CRM
-   */
   static async findAllWithPatientDetails(): Promise<RowDataPacket[]> {
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT 

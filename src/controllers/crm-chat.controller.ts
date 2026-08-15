@@ -4,9 +4,6 @@ import { WhatsAppService } from '../services/whatsapp.service';
 import { PatientRepository } from '../repositories/patient.repository'; 
 
 export class CRMChatController {
-  /**
-   * Obtener lista de conversaciones con leads y pacientes
-   */
   static async getConversations(req: Request, res: Response) {
     try {
       const conversations = await ChatRepository.getAllConversations();
@@ -17,9 +14,6 @@ export class CRMChatController {
     }
   }
 
-  /**
-   * Obtener mensajes de una conversación
-   */
   static async getMessages(req: Request, res: Response) {
     try {
       const conversationId = Number(req.params.conversationId);
@@ -31,9 +25,6 @@ export class CRMChatController {
     }
   }
 
-  /**
-   * Enviar mensaje de WhatsApp desde el CRM al paciente
-   */
   static async sendMessage(req: Request, res: Response) {
     try {
       let { conversationId, phone, body } = req.body;
@@ -42,7 +33,6 @@ export class CRMChatController {
         return res.status(400).json({ success: false, message: 'Faltan parámetros requeridos (phone, body)' });
       }
 
-      // 1. Si no hay conversationId o viene un paciente, buscar o crear la conversación automáticamente
       if (!conversationId) {
         let patient = await PatientRepository.findByPhone(phone);
         let patientId: number;
@@ -54,10 +44,8 @@ export class CRMChatController {
         conversationId = await ChatRepository.getOrCreateConversation(patientId);
       }
 
-      // 2. Enviar vía WhatsApp Web Client (Pasamos el teléfono o el identificador completo si trae @lid)
       await WhatsAppService.sendMessage(phone, body);
 
-      // 3. Guardar mensaje saliente en MySQL
       const messageId = await ChatRepository.saveMessage({
         conversationId: Number(conversationId),
         sender: 'RECEPTIONIST',

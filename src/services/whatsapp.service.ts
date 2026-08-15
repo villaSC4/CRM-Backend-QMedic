@@ -9,8 +9,13 @@ export class WhatsAppService {
   static async init() {
     this.client = new Client({
       authStrategy: new LocalAuth({ dataPath: './auth_info_wwebjs' }),
+      webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html',
+      },
       puppeteer: {
         headless: true, 
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -36,15 +41,11 @@ export class WhatsAppService {
       console.error('❌ Fallo de autenticación en WhatsApp:', msg);
     });
 
-    // Escuchar mensajes entrantes
-    // Escuchar mensajes entrantes
     this.client.on('message', async (msg) => {
-      // Permitir chats personales que terminen en @c.us o @lid, ignorar grupos y estados
       if (msg.from.endsWith('@g.us') || msg.from === 'status@broadcast') return;
 
       const contact = await msg.getContact();
 
-      // Guardamos el identificador completo (ej: 46484481429568@lid o número limpio) para mapear exacto
       const rawIdentifier = msg.from; 
       const identifier = contact.number ? contact.number.replace(/\D/g, '') : rawIdentifier.split('@')[0];
       const displayName = contact.name || contact.pushname || `Lead ${identifier}`;
@@ -55,7 +56,6 @@ export class WhatsAppService {
       console.log(`📩 Mensaje recibido de ${displayName} (${identifier} - ID: ${rawIdentifier}): ${body}`);
 
       try {
-        // 1. Buscar o registrar paciente en MySQL usando el número limpio
         let patient = await PatientRepository.findByPhone(identifier);
         let patientId: number;
 
@@ -68,7 +68,6 @@ export class WhatsAppService {
           patientId = patient.id!;
         }
 
-        // 2. Guardar en la conversación
         const conversationId = await ChatRepository.getOrCreateConversation(patientId);
         await ChatRepository.saveMessage({
           conversationId,
@@ -83,9 +82,6 @@ export class WhatsAppService {
     this.client.initialize();
   }
 
-  /**
-   * Enviar mensaje desde el CRM
-   */
   static async sendMessage(target: string, text: string) {
     if (!this.client) {
       throw new Error('El cliente de WhatsApp no está inicializado');
@@ -93,9 +89,7 @@ export class WhatsAppService {
 
     let finalChatId = target.trim();
 
-    // 1. Si ya tiene sufijo @lid o @c.us, usarlo directamente
     if (!finalChatId.includes('@')) {
-      // Si tiene más de 13 dígitos y no empieza con código de país 51, es un LID
       if (finalChatId.length > 13 && !finalChatId.startsWith('51')) {
         finalChatId = `${finalChatId}@lid`;
       } else {
@@ -108,11 +102,9 @@ export class WhatsAppService {
     console.log(`📤 Enviando mensaje a ${finalChatId}: ${text}`);
 
     try {
-      // Intento 1: Obtener el objeto Chat directo y responder
       const chat = await this.client.getChatById(finalChatId);
       return await chat.sendMessage(text);
     } catch (err) {
-      // Intento 2: Envío fallback directo por Client
       return await this.client.sendMessage(finalChatId, text);
     }
   }

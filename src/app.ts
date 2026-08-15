@@ -16,11 +16,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 2. CONECTAMOS LAS RUTAS DE AUTENTICACIÓN A LA APLICACIÓN
-// Esto le dice a Express que cualquier petición que empiece con /api/auth vaya a tu archivo authRoutes
 app.use('/api/auth', authRoutes);
 
-// Endpoints del CRM
 app.get('/api/v1/crm/patients', CRMPatientController.getAllPatients);
 app.put('/api/v1/crm/patients/:id/notes', CRMPatientController.updateNotes);
 app.get('/api/v1/crm/chats', CRMChatController.getConversations);

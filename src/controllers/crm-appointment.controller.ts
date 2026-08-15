@@ -5,9 +5,6 @@ import { CalendarService } from '../services/calendar.service';
 import { pool } from '../config/database';
 
 export class CRMAppointmentController {
-  /**
-   * Listar todas las citas para el CRM
-   */
   static async getAllAppointments(req: Request, res: Response) {
     try {
       const appointments = await AppointmentRepository.findAllWithPatientDetails();
@@ -18,18 +15,13 @@ export class CRMAppointmentController {
     }
   }
 
-  /**
-   * Crear una nueva cita desde el CRM o Lead de WhatsApp
-   */
   static async createAppointment(req: Request, res: Response) {
     try {
       const { fullName, phone, email, startTime, isFirstSession, notes } = req.body;
 
       const start = new Date(startTime);
-      // Duración estándar de sesión de 60 minutos
       const end = new Date(start.getTime() + 60 * 60 * 1000);
 
-      // 1. Validar reglas de horario de QMEDIC
       if (!CalendarService.isWithinWorkingHours(start)) {
         return res.status(400).json({
           success: false,
@@ -37,7 +29,6 @@ export class CRMAppointmentController {
         });
       }
 
-      // 2. Buscar o registrar paciente en MySQL
       let patient = await PatientRepository.findByPhone(phone);
       let patientId: number;
 
@@ -51,10 +42,8 @@ export class CRMAppointmentController {
         patientId = patient.id!;
       }
 
-      // 3. Tarifa comercial QMEDIC (S/ 120.00 sesión combinada / promo primera sesión)
       const pricePaid = 120.00;
 
-      // 4. Crear evento en Google Calendar
       const googleEventId = await CalendarService.createAppointmentEvent({
         patientName: fullName,
         phone,
@@ -63,7 +52,6 @@ export class CRMAppointmentController {
         isFirstSession: Boolean(isFirstSession),
       });
 
-      // 5. Guardar cita en MySQL
       const appointmentId = await AppointmentRepository.create({
         patient_id: patientId,
         service_id: 2,
@@ -76,7 +64,6 @@ export class CRMAppointmentController {
         notes,
       });
 
-      // Si fue su primera sesión, marcarla como usada en la ficha del paciente
       if (isFirstSession) {
         await PatientRepository.markPromoAsUsed(patientId);
       }
@@ -92,9 +79,10 @@ export class CRMAppointmentController {
       return res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
   }
+
   static async getSlots(req: Request, res: Response) {
     try {
-      const { date } = req.query; // Ejemplo: ?date=2026-08-15
+      const { date } = req.query;
 
       if (!date || typeof date !== 'string') {
         return res.status(400).json({
@@ -122,13 +110,12 @@ export class CRMAppointmentController {
   static async updateStatus(req: Request, res: Response) {
     try {
       const appointmentId = Number(req.params.id);
-      const { status } = req.body; // 'ATTENDED' | 'CANCELLED' | 'CONFIRMED'
+      const { status } = req.body;
 
       if (!['CONFIRMED', 'ATTENDED', 'CANCELLED'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Estado inválido' });
       }
 
-      // Obtener datos de la cita
       const [appointmentRows]: any = await pool.query(
         'SELECT patient_id, is_first_session FROM appointments WHERE id = ? LIMIT 1',
         [appointmentId]
@@ -140,10 +127,8 @@ export class CRMAppointmentController {
 
       const appointment = appointmentRows[0];
 
-      // Actualizar estado de la cita
       await pool.query('UPDATE appointments SET status = ? WHERE id = ?', [status, appointmentId]);
 
-      // Si fue atendida y era su primera sesión, marcar que ya usó la promoción
       if (status === 'ATTENDED' && appointment.is_first_session) {
         await pool.query('UPDATE patients SET has_used_first_promo = 1 WHERE id = ?', [
           appointment.patient_id,

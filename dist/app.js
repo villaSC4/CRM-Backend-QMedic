@@ -1,0 +1,34 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const database_1 = require("./config/database");
+const crm_appointment_controller_1 = require("./controllers/crm-appointment.controller");
+const whatsapp_service_1 = require("./services/whatsapp.service");
+const crm_chat_controller_1 = require("./controllers/crm-chat.controller");
+const crm_patient_controller_1 = require("./controllers/crm-patient.controller");
+const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+dotenv_1.default.config();
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)());
+app.use(express_1.default.json());
+app.use('/api/auth', authRoutes_1.default);
+app.get('/api/v1/crm/patients', crm_patient_controller_1.CRMPatientController.getAllPatients);
+app.put('/api/v1/crm/patients/:id/notes', crm_patient_controller_1.CRMPatientController.updateNotes);
+app.get('/api/v1/crm/chats', crm_chat_controller_1.CRMChatController.getConversations);
+app.get('/api/v1/crm/chats/:conversationId/messages', crm_chat_controller_1.CRMChatController.getMessages);
+app.post('/api/v1/crm/chats/send', crm_chat_controller_1.CRMChatController.sendMessage);
+app.get('/api/v1/crm/appointments', crm_appointment_controller_1.CRMAppointmentController.getAllAppointments);
+app.get('/api/v1/crm/appointments/slots', crm_appointment_controller_1.CRMAppointmentController.getSlots);
+app.post('/api/v1/crm/appointments', crm_appointment_controller_1.CRMAppointmentController.createAppointment);
+app.patch('/api/v1/crm/appointments/:id/status', crm_appointment_controller_1.CRMAppointmentController.updateStatus);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, async () => {
+    await (0, database_1.testConnection)();
+    console.log(`🚀 Servidor CRM QMEDIC corriendo en el puerto ${PORT}`);
+    await whatsapp_service_1.WhatsAppService.init();
+});
