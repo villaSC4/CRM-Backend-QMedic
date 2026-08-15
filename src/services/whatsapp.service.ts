@@ -24,6 +24,10 @@ export class WhatsAppService {
           '--no-first-run',
           '--no-zygote',
           '--disable-gpu',
+          '--single-process',
+          '--disable-extensions',
+          '--disable-software-rasterizer',
+          '--js-flags=--max-old-space-size=200',
         ],
       },
     });
